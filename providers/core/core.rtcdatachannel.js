@@ -1,5 +1,6 @@
 /*jslint indent:2,sloppy:true, node:true */
 
+var adapter = require('webrtc-adapter');
 var util = require('../../src/util');
 
 var unAttachedChannels = {};
@@ -124,8 +125,14 @@ RTCDataChannelAdapter.prototype.onclose = function (event) {
 RTCDataChannelAdapter.prototype.onmessage = function (event) {
   if (typeof event.data === 'string') {
     this.dispatchEvent('onmessage', {text: event.data});
-  } else {
+  } else if (event.data instanceof ArrayBuffer) {
     this.dispatchEvent('onmessage', {buffer: event.data});
+  } else if (event.data instanceof Blob) {
+    adapter.blobToArrayBuffer(event.data, function(buffer) {
+      this.dispatchEvent('onmessage', {buffer: buffer});
+    });
+  } else {
+    console.error('unknown type');
   }
 };
 
