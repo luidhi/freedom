@@ -26,9 +26,9 @@ module.exports = function (pc, dc, setup) {
     bob.on('ondatachannel', function (msg) {
       bobchannel = datachan(msg.channel);
       bobchannel.on('onmessage', function (msg) {
-        callback(msg);
         alice.close();
         bob.close();
+        callback(msg);
       });
     });
     bob.on('onicecandidate', function (msg) {
