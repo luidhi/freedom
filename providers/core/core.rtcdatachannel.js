@@ -1,6 +1,5 @@
 /*jslint indent:2,sloppy:true, node:true */
 
-var adapter = require('webrtc-adapter');
 var util = require('../../src/util');
 
 var unAttachedChannels = {};
@@ -9,6 +8,35 @@ var allocateChannel = function (dataChannel) {
   unAttachedChannels[id] = dataChannel;
   return id;
 };
+
+var blobToArrayBuffer = function(blob, callback) {
+  var fileReader = new FileReader();
+  fileReader.onload = function() {
+    callback(fileReader.result);
+  };
+  fileReader.readAsArrayBuffer(blob);
+};
+
+var blobToArrayBufferViaBinaryString = function(blob, callback) {
+  var fileReader = new FileReader();
+  fileReader.onload = function() {
+    var result = fileReader.result;
+    // Convert the string to an ArrayBuffer.
+    var buffer = new ArrayBuffer(result.length);
+    var bytes = new Uint8Array(buffer);
+    for (var i = 0; i < result.length; ++i) {
+      bytes[i] = result.charCodeAt(i);
+    }
+    callback(buffer);
+  };
+  fileReader.readAsBinaryString(blob);
+};
+
+// Workaround for FileReader.readAsArrayString strangeness in Firefox add-ons:
+//  https://bugzilla.mozilla.org/show_bug.cgi?id=1122687
+var myBlobToArrayBuffer = (typeof mozRTCPeerConnection === 'undefined' ||
+    typeof Components === 'undefined') ? blobToArrayBuffer :
+    blobToArrayBufferViaBinaryString;
 
 var RTCDataChannelAdapter = function (cap, dispatchEvents, id) {
   this.dispatchEvent = dispatchEvents;
@@ -128,13 +156,12 @@ RTCDataChannelAdapter.prototype.onmessage = function (event) {
   } else if (event.data instanceof ArrayBuffer) {
     this.dispatchEvent('onmessage', {buffer: event.data});
   } else if (event.data instanceof Blob) {
-    // setBinaryType has no effect in Firefox addons:
+    // Workaround for setBinaryType strangeness in Firefox add-ons:
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=1122682
-    adapter.blobToArrayBuffer(event.data, function(buffer) {
+    myBlobToArrayBuffer(event.data, function(buffer) {
       this.dispatchEvent('onmessage', {buffer: buffer});
     }.bind(this));
   }
-  // TODO: log error
 };
 
 exports.name = "core.rtcdatachannel";

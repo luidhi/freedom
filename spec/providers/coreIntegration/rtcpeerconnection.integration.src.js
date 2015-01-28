@@ -17,14 +17,14 @@ module.exports = function (pc, dc, setup) {
   // Establishes a peerconnection with one datachannel, sends a message on the
   // datachannel and calls back with the message received by the other peer.
   var sendMessageToPeer = function(payload, callback) {
-    var alice, bob, aliceChannel, bobchannel,
+    var alice, bob, aliceChannel, bobChannel,
       aliceCandidates = [],
       aliceOffer;
     alice = peercon();
     bob = peercon();
     bob.on('ondatachannel', function (msg) {
-      bobchannel = datachan(msg.channel);
-      bobchannel.on('onmessage', function (msg) {
+      bobChannel = datachan(msg.channel);
+      bobChannel.on('onmessage', function (msg) {
         alice.close();
         bob.close();
         callback(msg);
