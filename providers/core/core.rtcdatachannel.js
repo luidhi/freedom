@@ -6,10 +6,6 @@ var unAttachedChannels = {};
 var allocateChannel = function (dataChannel) {
   var id = util.getId();
   unAttachedChannels[id] = dataChannel;
-
-  // Default binaryType in Firefox is 'blob'.
-  dataChannel.binaryType = 'arraybuffer';
-
   return id;
 };
 
@@ -159,8 +155,7 @@ RTCDataChannelAdapter.prototype.onmessage = function (event) {
     this.dispatchEvent('onmessage', {text: event.data});
   } else if (event.data instanceof ArrayBuffer) {
     this.dispatchEvent('onmessage', {buffer: event.data});
-  } else if (event.data instanceof Blob &&
-      this.channel.binaryType === 'arraybuffer') {
+  } else if (event.data instanceof Blob) {
     // Workaround for setBinaryType strangeness in Firefox add-ons:
     //   https://bugzilla.mozilla.org/show_bug.cgi?id=1122682
     myBlobToArrayBuffer(event.data, function(buffer) {
