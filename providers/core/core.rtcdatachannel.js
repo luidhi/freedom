@@ -9,14 +9,6 @@ var allocateChannel = function (dataChannel) {
   return id;
 };
 
-var blobToArrayBuffer = function(blob, callback) {
-  var fileReader = new FileReader();
-  fileReader.onload = function() {
-    callback(fileReader.result);
-  };
-  fileReader.readAsArrayBuffer(blob);
-};
-
 var blobToArrayBufferViaBinaryString = function(blob, callback) {
   var fileReader = new FileReader();
   fileReader.onload = function() {
@@ -32,11 +24,24 @@ var blobToArrayBufferViaBinaryString = function(blob, callback) {
   fileReader.readAsBinaryString(blob);
 };
 
-// Workaround for FileReader.readAsArrayString strangeness in Firefox add-ons:
-//  https://bugzilla.mozilla.org/show_bug.cgi?id=1122687
-var myBlobToArrayBuffer = (typeof mozRTCPeerConnection === 'undefined' ||
-    typeof Components === 'undefined') ? blobToArrayBuffer :
-    blobToArrayBufferViaBinaryString;
+var myBlobToArrayBuffer;
+
+var blobToArrayBuffer = function(blob, callback) {
+  var fileReader = new FileReader();
+  fileReader.onload = function() {
+    if (fileReader.result.byteLength) {
+      callback(fileReader.result);
+    } else {
+      // Workaround FileReader.readAsArrayString strangeness in Firefox add-ons:
+      //  https://bugzilla.mozilla.org/show_bug.cgi?id=1122687
+      myBlobToArrayBuffer = blobToArrayBufferViaBinaryString;
+      blobToArrayBufferViaBinaryString(blob, callback);
+    }
+  };
+  fileReader.readAsArrayBuffer(blob);
+};
+
+myBlobToArrayBuffer = blobToArrayBuffer;
 
 var RTCDataChannelAdapter = function (cap, dispatchEvents, id) {
   this.dispatchEvent = dispatchEvents;
