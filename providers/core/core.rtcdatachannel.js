@@ -4,44 +4,11 @@ var util = require('../../src/util');
 
 var unAttachedChannels = {};
 var allocateChannel = function (dataChannel) {
+  dataChannel.binaryType = 'arraybuffer';
   var id = util.getId();
   unAttachedChannels[id] = dataChannel;
   return id;
 };
-
-var blobToArrayBufferViaBinaryString = function(blob, callback) {
-  var fileReader = new FileReader();
-  fileReader.onload = function() {
-    var result = fileReader.result;
-    // Convert the string to an ArrayBuffer.
-    var buffer = new ArrayBuffer(result.length);
-    var bytes = new Uint8Array(buffer);
-    for (var i = 0; i < result.length; ++i) {
-      bytes[i] = result.charCodeAt(i);
-    }
-    callback(buffer);
-  };
-  fileReader.readAsBinaryString(blob);
-};
-
-var myBlobToArrayBuffer;
-
-var blobToArrayBuffer = function(blob, callback) {
-  var fileReader = new FileReader();
-  fileReader.onload = function() {
-    if (fileReader.result.byteLength) {
-      callback(fileReader.result);
-    } else {
-      // Workaround FileReader.readAsArrayString strangeness in Firefox add-ons:
-      //  https://bugzilla.mozilla.org/show_bug.cgi?id=1122687
-      myBlobToArrayBuffer = blobToArrayBufferViaBinaryString;
-      blobToArrayBufferViaBinaryString(blob, callback);
-    }
-  };
-  fileReader.readAsArrayBuffer(blob);
-};
-
-myBlobToArrayBuffer = blobToArrayBuffer;
 
 var RTCDataChannelAdapter = function (cap, dispatchEvents, id) {
   this.dispatchEvent = dispatchEvents;
@@ -161,11 +128,15 @@ RTCDataChannelAdapter.prototype.onmessage = function (event) {
   } else if (event.data instanceof ArrayBuffer) {
     this.dispatchEvent('onmessage', {buffer: event.data});
   } else if (event.data instanceof Blob) {
-    // Workaround for setBinaryType strangeness in Firefox add-ons:
-    //   https://bugzilla.mozilla.org/show_bug.cgi?id=1122682
-    myBlobToArrayBuffer(event.data, function(buffer) {
-      this.dispatchEvent('onmessage', {buffer: buffer});
-    }.bind(this));
+    if (this.channel.binaryType === 'arraybuffer' &&
+        typeof Components !== 'undefined' &&
+        !(event.data instanceof ArrayBuffer)) {
+      var view = {};
+      var realData = Components.utils.cloneInto(event.data, view);
+      this.dispatchEvent('onmessage', {buffer: realData});
+    } else {
+      this.dispatchEvent('onmessage', {buffer: event.data});
+    }
   }
 };
 
