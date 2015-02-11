@@ -1,0 +1,83 @@
+/**
+ * PGP API
+ *
+ * API for providing encryption/decryption and authentication/verification.
+ * Allows users to either generate or import keypairs, export public key, and
+ * perform basic cryptography operations. Note that signEncrypt/verifyDecrypt
+ * operate on ArrayBuffers, and so armor/dearmor will be needed if the data
+ * has to be converted to a string.
+ **/
+
+{
+  "name": "pgp",
+  "api": {
+    "crypto": {
+      "_comment": "Simplified crypto interface",
+
+      "ERRCODE": { "type": "constant", "value": {
+        "KEYS_NOT_LOADED":    "No keys in memory - initialize first",
+        "MALFORMED":          "Malformed armored message",
+        "INVALID_PASSPHRASE": "Wrong passphrase",
+        "KEY_NOT_GENERATED":  "Trying to generate key, but it already exists",
+        "KEY_DOES_NOT_EXIST": "Trying to load a key that's not there",
+        "BAD_SIGNATURE":      "Invalid signature on call to verify"
+      }},
+
+      "setup": {
+        "_comment": "Creates a new keypair or loads one if it already exists",
+        "type": "method",
+        "value": ["string", "string"],
+        "ret": [],
+        "err": { "errcode": "string", "message": "string" }
+      },
+
+      "importKeypair": {
+        "_comment": "Import a pre-existing public/private keypair",
+        "type": "method",
+        "value": ["string", "string", "string"],
+        "ret": [],
+        "err": { "errcode": "string", "message": "string" }
+      },
+
+      "exportKey": {
+        "_comment": "Export your public key to share with buddies",
+        "type": "method",
+        "value": [],
+        "ret": "string",
+        "err": { "errcode": "string", "message": "string" }
+      },
+
+      "signEncrypt": {
+        "_comment": "Sign w/private key, optionally encrypt with other key",
+        "type": "method",
+        "value": ["buffer", "string", "boolean"],
+        "ret": "buffer",
+        "err": { "errcode": "string", "message": "string" }
+      },
+
+      "verifyDecrypt": {
+        "_comment": "Decrypt w/private key, optionally verify with other key",
+        "type": "method",
+        "value": ["buffer", "string"],
+        "ret": { "data": "buffer", "signedBy": ["array", "string"] },
+        "err": { "errcode": "string", "message": "string" }
+      },
+
+      "armor": {
+        "_comment": "ASCII armor data, and include given header",
+        "type": "method",
+        "value": ["buffer", "string"],
+        "ret": "string",
+        "err": { "errcode": "string", "message": "string" }
+      },
+
+      "dearmor": {
+        "_comment": "De-armor given data, checking for given header",
+        "type": "method",
+        "value": ["string"],
+        "ret": "buffer",
+        "err": { "errcode": "string", "message": "string" }
+      }
+    }
+  }
+}
